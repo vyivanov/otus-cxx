@@ -4,10 +4,23 @@ on:
     branches:
       - main
 jobs:
-  build:
+  task-1:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - name: multi-line script
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
         run: |
-          echo build, test, release
+          sudo apt-get install -y libboost-test-dev
+      - name: Build
+        working-directory: task-1/
+        run: |
+          cmake . && make all -j $(nproc --all) && ./helloworld_cli
+      - name: Test
+        working-directory: task-1/
+        run: |
+          make test
+      - name: Package
+        working-directory: task-1/
+        run: |
+          make package
