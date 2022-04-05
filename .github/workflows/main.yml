@@ -15,7 +15,8 @@ jobs:
       - name: Build
         working-directory: task-1/
         run: |
-          cmake . -DPATCH_VERSION=${{ github.run_number }} && make all -j $(nproc --all) && ./helloworld_cli
+          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON && \
+          make all -j $(nproc --all) && ./helloworld_cli
       - name: Test
         working-directory: task-1/
         run: |
