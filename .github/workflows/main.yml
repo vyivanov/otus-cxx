@@ -4,10 +4,41 @@ on:
     branches:
       - main
 jobs:
-  build:
+  task-1:
     runs-on: ubuntu-20.04
     steps:
-      - uses: actions/checkout@v3
-      - name: multi-line script
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
         run: |
-          echo build, test, release
+          sudo apt-get install -y libboost-test-dev
+      - name: Build
+        working-directory: task-1/
+        run: |
+          cmake . -DPATCH_VERSION=${{ github.run_number }} && make all -j $(nproc --all) && ./helloworld_cli
+      - name: Test
+        working-directory: task-1/
+        run: |
+          make test
+      - name: Package
+        working-directory: task-1/
+        run: |
+          make package
+      - name: Create release
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_number }}
+          release_name: Release ${{ github.run_number }}
+      - name: Upload release
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: task-1/helloworld-0.0.${{ github.run_number }}-Linux.deb
+          asset_name: helloworld-0.0.${{ github.run_number }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package
