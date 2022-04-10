@@ -1,4 +1,4 @@
-name: task-1 pipeline
+name: task-01 pipeline
 on:
   pull_request:
     types:
@@ -7,11 +7,11 @@ on:
       - closed
     branches:
       - main
-      - workflow-adjsut # TODO: delete
+      - workflow-task-01 # TODO: delete
     paths:
       - task-1/**
 jobs:
-  task-1:
+  task-01:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
@@ -38,8 +38,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: 0.0.${{ github.run_number }}
-          release_name: Release 0.0.${{ github.run_number }}
+          tag_name: task-01/0.0.${{ github.run_number }}
+          release_name: Release task-01/0.0.${{ github.run_number }}
       - name: Upload release
         if: github.event.pull_request.merged
         id: upload-release
