@@ -1,45 +1,52 @@
-name: main pipeline
+name: task-01 pipeline
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
     branches:
       - main
+    paths:
+      - task-01/**
 jobs:
-  task-1:
+  task-01:
     runs-on: ubuntu-20.04
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
       - name: Provision environment
         run: |
-          sudo apt-get install -y libboost-test-dev
+          sudo apt-get install -y ninja-build libboost-test-dev
       - name: Build
-        working-directory: task-1/
+        working-directory: task-01/
         run: |
-          cmake . -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON && \
-          make all -j $(nproc --all) && ./helloworld_cli
+          cmake . -GNinja -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON && cmake --build .
       - name: Test
-        working-directory: task-1/
+        working-directory: task-01/
         run: |
-          make test
+          cmake --build . --target test
       - name: Package
-        working-directory: task-1/
+        working-directory: task-01/
         run: |
-          make package
+          cmake --build . --target package
       - name: Create release
+        if: github.event.pull_request.merged
         id: create-release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.run_number }}
-          release_name: Release ${{ github.run_number }}
+          tag_name: task-01/0.0.${{ github.run_number }}
+          release_name: Release task-01/0.0.${{ github.run_number }}
       - name: Upload release
+        if: github.event.pull_request.merged
         id: upload-release
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: task-1/helloworld-0.0.${{ github.run_number }}-Linux.deb
+          asset_path: task-01/helloworld-0.0.${{ github.run_number }}-Linux.deb
           asset_name: helloworld-0.0.${{ github.run_number }}-Linux.deb
           asset_content_type: application/vnd.debian.binary-package
