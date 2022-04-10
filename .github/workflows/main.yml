@@ -1,12 +1,10 @@
 name: task-1 pipeline
 on:
   pull_request:
-    branches:
-      - main
-      - workflow-adjsut # TODO: delete
-    paths:
-      - task-1/**
-  push:
+    types:
+      - opened
+      - synchronize
+      - closed
     branches:
       - main
       - workflow-adjsut # TODO: delete
