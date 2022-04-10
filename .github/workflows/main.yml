@@ -1,15 +1,15 @@
 name: task-1 pipeline
 on:
   pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
     branches:
       - main
       - workflow-adjsut # TODO: delete
     paths:
       - task-1/**
-  push:
-    branches:
-      - main
-      - workflow-adjsut # TODO: delete
 jobs:
   task-1:
     runs-on: ubuntu-20.04
@@ -32,7 +32,7 @@ jobs:
         run: |
           cmake --build . --target package
       - name: Create release
-        if: ${{ github.event.pull_request.merged }}
+        if: github.event.pull_request.merged
         id: create-release
         uses: actions/create-release@v1
         env:
@@ -41,7 +41,7 @@ jobs:
           tag_name: ${{ github.run_number }}
           release_name: Release ${{ github.run_number }}
       - name: Upload release
-        if: ${{ github.event.pull_request.merged }}
+        if: github.event.pull_request.merged
         id: upload-release
         uses: actions/upload-release-asset@v1
         env:
