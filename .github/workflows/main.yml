@@ -6,6 +6,12 @@ on:
       - workflow-adjsut # TODO: delete
     paths:
       - task-1/**
+  push:
+    branches:
+      - main
+      - workflow-adjsut # TODO: delete
+    paths:
+      - task-1/**
 jobs:
   task-1:
     runs-on: ubuntu-20.04
