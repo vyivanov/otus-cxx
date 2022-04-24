@@ -5,6 +5,7 @@ if("${PROJECT_VERSION}" STREQUAL "")
     message(FATAL_ERROR)
 endif()
 
+
 add_executable(${PROJECT_NAME} main.cxx)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
