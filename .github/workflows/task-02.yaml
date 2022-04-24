@@ -1,0 +1,50 @@
+name: task-02 pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - main
+    paths:
+      - task-02/**
+jobs:
+  task-02:
+    runs-on: ubuntu-20.04
+    env:
+      SEMVER: 0.0.1
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
+        run: |
+          sudo apt-get install -y ninja-build libboost-dev
+      - name: Build
+        working-directory: task-02/cxx/
+        run: |
+          cmake -Bbuild -GNinja -DSEMVER=${{ env.SEMVER }} && cmake --build build/
+      - name: Package
+        working-directory: task-02/cxx/
+        run: |
+          cmake --build build/ --target package
+      - name: Create release
+        if: github.event.pull_request.merged
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: task-02/${{ env.SEMVER }}
+          release_name: Release task-02/${{ env.SEMVER }}
+      - name: Upload release
+        if: github.event.pull_request.merged
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: task-02/cxx/build/ip_filter-${{ env.SEMVER }}-Linux.deb
+          asset_name: ip_filter-${{ env.SEMVER }}-Linux.deb
+          asset_content_type: application/vnd.debian.binary-package
