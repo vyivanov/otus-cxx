@@ -19,17 +19,17 @@ jobs:
         run: |
           sudo apt-get install -y ninja-build libboost-test-dev
       - name: Build
-        working-directory: task-01/
+        working-directory: task-01/cxx/
         run: |
-          cmake . -GNinja -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON && cmake --build .
+          cmake -Bbuild -GNinja -DPATCH_VERSION=${{ github.run_number }} -DWITH_BOOST_TEST=ON && cmake --build build/
       - name: Test
-        working-directory: task-01/
+        working-directory: task-01/cxx/
         run: |
-          cmake --build . --target test
+          cmake --build build/ --target test
       - name: Package
-        working-directory: task-01/
+        working-directory: task-01/cxx/
         run: |
-          cmake --build . --target package
+          cmake --build build/ --target package
       - name: Create release
         if: github.event.pull_request.merged
         id: create-release
@@ -47,6 +47,6 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.create-release.outputs.upload_url }}
-          asset_path: task-01/helloworld-0.0.${{ github.run_number }}-Linux.deb
+          asset_path: task-01/cxx/build/helloworld-0.0.${{ github.run_number }}-Linux.deb
           asset_name: helloworld-0.0.${{ github.run_number }}-Linux.deb
           asset_content_type: application/vnd.debian.binary-package
