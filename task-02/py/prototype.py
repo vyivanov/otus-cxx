@@ -49,7 +49,7 @@ def main():
     ip_idx.sort(reverse=True)
 
     print_stdout(ip_map, ip_idx, predicat = lambda ip_octets:
-        True)
+        ip_octets and True)
 
     print_stdout(ip_map, ip_idx, predicat = lambda ip_octets:
         ip_octets[0] == 1)
