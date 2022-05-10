@@ -13,9 +13,9 @@
 
 namespace {
 
-constexpr uint8_t IP_OCTETS_NUM = 4;
+constexpr uint8_t IP_OCTETS_NUM = 4U;
 
-using ip_cnt_t = uint16_t;
+using ip_cnt_t = uint32_t;
 using ip_idx_t = uint32_t;
 
 using ip_octets_t = std::array<uint16_t, IP_OCTETS_NUM>;
@@ -32,7 +32,7 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
 // T(1), S(1)
 [[nodiscard]] ip_octets_t ip_into_octets(const ip_string_t& ip_string) noexcept
 {
-    ip_splits_t ip_splits = {};
+    ip_splits_t ip_splits(IP_OCTETS_NUM);
     boost::split(ip_splits, ip_string, [](const char symb) { return symb == '.'; });
 
     ip_octets_t ip_octets = {};
@@ -64,6 +64,8 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
 // T(1), S(1)
 [[nodiscard]] ip_idx_t octets_to_idx(const ip_octets_t& ip_octets) noexcept
 {
+    assert(ip_octets.size() == IP_OCTETS_NUM);
+
     return (ip_octets.at(0) << 24) +
            (ip_octets.at(1) << 16) +
            (ip_octets.at(2) <<  8) +
@@ -77,8 +79,10 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
 
     for (std::string line; std::getline(std::cin, line);)
     {
-        stdinp_input_t stdinp_input = {};
+        stdinp_input_t stdinp_input(3);
         boost::split(stdinp_input, line, [](const char symb) { return symb == '\t'; });
+
+        assert(stdinp_input.size() == 3);
 
         const ip_string_t ip_string = stdinp_input.at(0);
         const ip_octets_t ip_octets = ip_into_octets(ip_string);

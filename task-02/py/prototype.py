@@ -13,16 +13,21 @@ def ip_from_octets(ip_octets:List[int]) -> str:
     ip_address:str = f'{ip_octets[0]}.{ip_octets[1]}.{ip_octets[2]}.{ip_octets[3]}'
     return ip_address
 
+# T(1), S(1)
+def octets_to_idx(ip_octets:List[int]) -> int:
+    assert len(ip_octets) == 4
+    return (ip_octets[0] << 24) + \
+           (ip_octets[1] << 16) + \
+           (ip_octets[2] <<  8) + \
+           (ip_octets[3] <<  0)
+
 # T(N), S(N)
 def parse_stdin() -> Dict[int, Tuple[List[int], int]]:
     ip_map = dict()
     for line in sys.stdin:
         ip_address:str      = line.split('\t')[0]
         ip_octets:List[int] = ip_into_octets(ip_address)
-        idx:int = (ip_octets[0] << 24) + \
-                  (ip_octets[1] << 16) + \
-                  (ip_octets[2] <<  8) + \
-                  (ip_octets[3] <<  0)
+        idx:int = octets_to_idx(ip_octets)
         if idx in ip_map:
             __, counter = ip_map[idx]
             ip_map[idx] = ip_octets, 1 + counter
@@ -66,4 +71,6 @@ def main():
 
 if __name__ == '__main__':
     assert ip_from_octets(ip_into_octets('127.0.0.1')) == '127.0.0.1'
+    assert octets_to_idx (ip_into_octets("255.255.255.255")) == 4_294_967_295
+
     main()
