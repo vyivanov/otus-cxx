@@ -2,8 +2,8 @@
 #include <array>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <string>
-#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -15,15 +15,11 @@ namespace {
 
 constexpr uint8_t IP_OCTETS_NUM = 4U;
 
-using ip_cnt_t = uint32_t;
 using ip_idx_t = uint32_t;
 
 using ip_octets_t = std::array<uint16_t, IP_OCTETS_NUM>;
-using ip_record_t = std::pair<ip_octets_t, ip_cnt_t>;
-using ip_mapper_t = std::unordered_map<ip_idx_t, ip_record_t>;
-using ip_idxrec_t = std::pair<ip_idx_t, ip_record_t>;
+using ip_mapper_t = std::multimap<ip_idx_t, ip_octets_t, std::greater<ip_idx_t>>;
 using ip_splits_t = std::vector<std::string>;
-using ip_idxvec_t = std::vector<ip_idx_t>;
 using ip_string_t = std::string;
 
 using stdinp_split_t = std::vector<std::string>;
@@ -32,11 +28,11 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
 // T(1), S(1)
 [[nodiscard]] ip_octets_t ip_into_octets(const ip_string_t& ip_string) noexcept
 {
-    auto ip_splits = ip_splits_t{IP_OCTETS_NUM};
-    boost::split(ip_splits, ip_string, [](const char symb) { return symb == '.'; });
-
+    ip_splits_t ip_splits = {};
     ip_octets_t ip_octets = {};
-    assert(ip_octets.size() == ip_splits.size());
+
+    boost::split(ip_splits, ip_string, [](const char symb) { return symb == '.'; });
+    assert(ip_splits.size() == ip_octets.size());
 
     auto str_to_int = [](const std::string& octet) -> uint16_t {
         return boost::lexical_cast<uint16_t>(octet);
@@ -66,17 +62,19 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
 {
     assert(ip_octets.size() == IP_OCTETS_NUM);
 
-    return (ip_octets.at(0) << 24) +
-           (ip_octets.at(1) << 16) +
-           (ip_octets.at(2) <<  8) +
-           (ip_octets.at(3) <<  0);
+    const ip_idx_t ip_idx = (ip_octets.at(0) << 24) +
+                            (ip_octets.at(1) << 16) +
+                            (ip_octets.at(2) <<  8) +
+                            (ip_octets.at(3) <<  0);
+
+    return ip_idx;
 }
 
-// T(N), S(N)
+// T(N*logN), S(N)
 [[nodiscard]] ip_mapper_t parse_stdin() noexcept
 {
-    auto ip_mapper    = ip_mapper_t{1024};
-    auto stdinp_split = stdinp_split_t{3};
+    ip_mapper_t    ip_mapper    = {};
+    stdinp_split_t stdinp_split = {};
 
     for (std::string line; std::getline(std::cin, line);)
     {
@@ -87,34 +85,20 @@ using stdout_print_t = std::function<bool(const ip_octets_t&)>;
         const ip_octets_t ip_octets = ip_into_octets(ip_string);
         const ip_idx_t    ip_idx    = octets_to_idx (ip_octets);
 
-        if (ip_mapper.find(ip_idx) == ip_mapper.end())
-        {
-            ip_mapper.insert({ip_idx, ip_record_t{ip_octets, 1}});
-        }
-        else
-        {
-            ip_record_t& ip_record = ip_mapper.at(ip_idx);
-            auto& [__, ip_cnt]     = ip_record;
-            ip_cnt                 = ip_cnt + 1;
-        }
+        ip_mapper.emplace(std::make_pair(ip_idx, ip_octets));
     }
 
     return ip_mapper;
 }
 
 // T(N), S(1)
-void print_stdout(const ip_mapper_t& ip_mapper,
-                  const ip_idxvec_t& ip_idxvec, const stdout_print_t& is_print) noexcept
+void print_stdout(const ip_mapper_t& ip_mapper, const stdout_print_t& is_print) noexcept
 {
-    for (const ip_idx_t ip_idx: ip_idxvec)
+    for (const auto& [__, ip_octets]: ip_mapper)
     {
-        const ip_record_t& ip_record    = ip_mapper.at(ip_idx);
-        const auto& [ip_octets, ip_cnt] = ip_record;
-
-        if (is_print(ip_octets)) {
-            for (ip_cnt_t iter{0}; iter < ip_cnt; ++iter) {
-                std::cout << ip_from_octets(ip_octets) << std::endl;
-            }
+        if (is_print(ip_octets))
+        {
+            std::cout << ip_from_octets(ip_octets) << std::endl;
         }
     }
 }
@@ -128,35 +112,21 @@ int main()
 
     const ip_mapper_t ip_mapper = parse_stdin();
 
-    auto ip_idxvec = ip_idxvec_t(ip_mapper.size());
-    assert(ip_idxvec.size() == ip_mapper.size());
-
-    auto ret_idx = [](const ip_idxrec_t& ip_idxrec) -> ip_idx_t {
-        const auto& [ip_idx, __] = ip_idxrec;
-        return ip_idx;
-    };
-
-    // T(N), S(1)
-    std::transform(ip_mapper.cbegin(), ip_mapper.cend(), ip_idxvec.begin(), ret_idx);
-
-    // T(N*logN), S(N)
-    std::sort(ip_idxvec.begin(), ip_idxvec.end(), std::greater<ip_idx_t>());
-
-    print_stdout(ip_mapper, ip_idxvec, [](const ip_octets_t& ip_octets) -> bool {
+    print_stdout(ip_mapper, [](const ip_octets_t& ip_octets) -> bool {
         (void) ip_octets;
         return true;
     });
 
-    print_stdout(ip_mapper, ip_idxvec, [](const ip_octets_t& ip_octets) -> bool {
+    print_stdout(ip_mapper, [](const ip_octets_t& ip_octets) -> bool {
         return ip_octets.at(0) == 1;
     });
 
-    print_stdout(ip_mapper, ip_idxvec, [](const ip_octets_t& ip_octets) -> bool {
+    print_stdout(ip_mapper, [](const ip_octets_t& ip_octets) -> bool {
         return ip_octets.at(0) == 46 and
                ip_octets.at(1) == 70;
     });
 
-    print_stdout(ip_mapper, ip_idxvec, [](const ip_octets_t& ip_octets) -> bool {
+    print_stdout(ip_mapper, [](const ip_octets_t& ip_octets) -> bool {
         return ip_octets.at(0) == 46 or
                ip_octets.at(1) == 46 or
                ip_octets.at(2) == 46 or
