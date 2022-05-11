@@ -13,7 +13,7 @@ jobs:
   task-02:
     runs-on: ubuntu-22.04
     env:
-      SEMVER: 0.0.4
+      SEMVER: 0.0.5
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -27,19 +27,23 @@ jobs:
       - name: Verify cxx
         working-directory: task-02/cxx/build/
         run: |
-          cp ../../ip_filter.* ./
-          cat ip_filter.tsv | ./ip-filter 2>&1 > ip_filter.out.txt
-          md5sum --check ip_filter.md5.txt
+          cat ../../ip_filter.tsv | ./ip-filter 2>&1 > ../../ip_filter.out.txt && cd ../../ && md5sum --check ip_filter.md5.txt
       - name: Verify py
         working-directory: task-02/py/
         run: |
-          cp ../ip_filter.* ./
-          cat ip_filter.tsv | python3 prototype.py 2>&1 > ip_filter.out.txt
-          md5sum --check ip_filter.md5.txt
+          cat ../ip_filter.tsv | python3 prototype.py 2>&1 > ../ip_filter.out.txt && cd ../ && md5sum --check ip_filter.md5.txt
       - name: Package cxx
         working-directory: task-02/cxx/
         run: |
           cmake --build build/ --target package
+      - name: Install package
+        working-directory: task-02/cxx/build/
+        run: |
+          sudo dpkg --install ip-filter_${{ env.SEMVER }}_amd64.deb
+      - name: Verify package
+        working-directory: task-02/
+        run: |
+          cat ip_filter.tsv | ip-filter 2>&1 > ip_filter.out.txt && md5sum --check ip_filter.md5.txt
       - name: Create release
         if: github.event.pull_request.merged
         id: create-release
