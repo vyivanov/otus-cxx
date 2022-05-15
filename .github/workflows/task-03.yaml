@@ -1,0 +1,62 @@
+name: task-03 pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - main
+    paths:
+      - task-03/**
+jobs:
+  task-02:
+    runs-on: ubuntu-22.04
+    env:
+      SEMVER: 0.0.1
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
+        run: |
+          sudo apt-get install -y ninja-build libboost-dev valgrind
+      - name: Build cxx
+        working-directory: task-03/cxx/
+        run: |
+          cmake -Bbuild -DSEMVER=${{ env.SEMVER }} -DLOGGING_ON=YES -DOPTIMIZE_ALLOCS=YES && cmake --build build/
+      - name: Verify cxx
+        working-directory: task-03/cxx/
+        run: |
+          valgrind --leak-check=yes --error-exitcode=100 ./build/contaloc
+      - name: Package cxx
+        working-directory: task-03/cxx/
+        run: |
+          cmake --build build/ --target package
+      - name: Install package
+        working-directory: task-03/cxx/build/
+        run: |
+          sudo dpkg --install contaloc_${{ env.SEMVER }}_amd64.deb
+      - name: Verify package
+        working-directory: task-03/cxx/
+        run: |
+          contaloc
+      - name: Create release
+        if: github.event.pull_request.merged
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: task-03/${{ env.SEMVER }}
+          release_name: Release task-03/${{ env.SEMVER }}
+      - name: Upload release
+        if: github.event.pull_request.merged
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: task-03/cxx/build/contaloc_${{ env.SEMVER }}_amd64.deb
+          asset_name: contaloc_${{ env.SEMVER }}_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
