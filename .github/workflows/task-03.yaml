@@ -8,12 +8,13 @@ on:
     branches:
       - main
     paths:
+      - .github/workflows/task-03.yaml
       - task-03/**
 jobs:
   task-03:
     runs-on: ubuntu-22.04
     env:
-      SEMVER: 0.0.2
+      SEMVER: 0.0.3
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
