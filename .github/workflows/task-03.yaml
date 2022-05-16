@@ -10,10 +10,10 @@ on:
     paths:
       - task-03/**
 jobs:
-  task-02:
+  task-03:
     runs-on: ubuntu-22.04
     env:
-      SEMVER: 0.0.1
+      SEMVER: 0.0.2
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
