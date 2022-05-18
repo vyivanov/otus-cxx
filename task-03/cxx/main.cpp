@@ -46,7 +46,15 @@ void evaluate_allocator() noexcept
         auto a_1 = mem::pool::block<int>{};
         auto a_2 = mem::pool::block<int>{a_1};
 
-        (void) a_2;
+        assert(a_1 == a_2);
+
+        a_2.allocate(1);
+
+        assert(a_1 != a_2);
+
+        a_1 = a_2;
+
+        assert(a_1 == a_2);
     }
 
     {
@@ -60,16 +68,7 @@ void evaluate_allocator() noexcept
         auto a_1 = mem::pool::block<int>{};
         auto a_2 = mem::pool::block<int>{};
 
-        a_1 = a_2;
-        a_1 = a_1;
-    }
-
-    {
-        auto a_1 = mem::pool::block<int>{};
-        auto a_2 = mem::pool::block<int>{};
-
-        a_1 = std::move(a_2);
-        a_1 = std::move(a_1);
+        a_2 = std::move(a_1);
     }
 
     auto test = ::map<int, 10>{};

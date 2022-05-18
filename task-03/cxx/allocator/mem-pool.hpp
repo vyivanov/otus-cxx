@@ -84,6 +84,14 @@ public:
         return (*this);
     }
 
+    bool operator==(const block& rhs) noexcept {
+        return std::memcmp(m_mem, rhs.m_mem, block::bytes) == 0 and (m_idx == rhs.m_idx);
+    }
+
+    bool operator!=(const block& rhs) noexcept {
+        return not (*this == rhs);
+    }
+
     virtual ~block() {
         LOG("this = {}", static_cast<void*>(this));
         std::free(m_mem);
