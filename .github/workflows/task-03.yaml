@@ -14,7 +14,7 @@ jobs:
   task-03:
     runs-on: ubuntu-22.04
     env:
-      SEMVER: 0.0.3
+      SEMVER: 0.0.4
     steps:
       - name: Checkout repo
         uses: actions/checkout@v3
@@ -24,7 +24,7 @@ jobs:
       - name: Build cxx
         working-directory: task-03/cxx/
         run: |
-          cmake -Bbuild -DSEMVER=${{ env.SEMVER }} -DLOGGING_ON=YES -DOPTIMIZE_ALLOCS=YES && cmake --build build/
+          cmake -Bbuild -DSEMVER=${{ env.SEMVER }} -DLOGGING_ON=YES && cmake --build build/
       - name: Verify cxx
         working-directory: task-03/cxx/
         run: |

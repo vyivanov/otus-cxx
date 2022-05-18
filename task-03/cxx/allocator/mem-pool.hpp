@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -7,27 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
+#include <logger.hpp>
 
 // TODO: add tests
 // TODO: implement memory extension
-// TODO: move LOG into tool component
-
-#ifdef LOGGING_ON
-#define LOG(FORMAT, ...) \
-    do { \
-        const auto pfx = fmt::format("{} at {}:{}", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-        const auto msg = fmt::format(FORMAT, ##__VA_ARGS__); \
-        std::cout \
-            << pfx << " | " + msg \
-            << std::endl; \
-    } while (false)
-#else
-#define LOG(FORMAT, ...) \
-    do { \
-        ;;;;; \
-    } while (false)
-#endif
 
 namespace mem::pool {
 
@@ -48,7 +33,6 @@ public:
         using other = block<U, N>;
     };
 
-#ifdef OPTIMIZE_ALLOCS
     block(): m_mem{init_mem()}, m_idx{init_idx()} {
         LOG("this = {}", static_cast<void*>(this));
     }
@@ -84,17 +68,23 @@ public:
         return (*this);
     }
 
+    bool operator==(const block& rhs) noexcept {
+        return std::memcmp(m_mem, rhs.m_mem, block::bytes) == 0 and (m_idx == rhs.m_idx);
+    }
+
+    bool operator!=(const block& rhs) noexcept {
+        return not (*this == rhs);
+    }
+
     virtual ~block() {
         LOG("this = {}", static_cast<void*>(this));
         std::free(m_mem);
     }
-#endif
 
     // O(N)
     block::pointer allocate(const std::size_t num) {
         LOG("num = {}", num);
         assert((num == 1) and "block pool permits allocate one element at a time");
-    #ifdef OPTIMIZE_ALLOCS
         const auto pblock = [this]() -> block::pointer {
             for (auto ptr = m_mem; ptr < (m_mem + block::amount); ++ptr) {
                 if (m_idx.at(ptr_to_idx(ptr)) == block::occupation::free) {
@@ -109,22 +99,15 @@ public:
         m_idx.at(ptr_to_idx(pblock)) = block::occupation::take;
         assert(pblock >= m_mem);
         return pblock;
-    #else
-        return (block::pointer) std::calloc(1, block::size);
-    #endif
     }
 
     // O(1)
     void deallocate(const block::pointer ptr, const std::size_t num) noexcept {
         LOG("ptr = {}, num = {}", static_cast<void*>(ptr), num);
         assert((num == 1) and "block pool permits deallocate one element at a time");
-    #ifdef OPTIMIZE_ALLOCS
         assert((m_mem <= ptr) and (ptr < (m_mem + block::amount)) and "this memory is not owned by block pool");
         assert(m_idx.at(ptr_to_idx(ptr)) == block::occupation::take);
         m_idx.at(ptr_to_idx(ptr)) = block::occupation::free;
-    #else
-        std::free(ptr);
-    #endif
     }
 
     // O(1)
@@ -141,7 +124,6 @@ public:
         ptr->~U();
     }
 
-#ifdef OPTIMIZE_ALLOCS
 private:
     enum class occupation : bool { free = true, take = false };
     using index = std::vector<block::occupation>;
@@ -161,7 +143,6 @@ private:
 
     block::pointer m_mem;
     block::index   m_idx;
-#endif
 };
 
 static_assert(pool::block<int, 1>::size   == sizeof(int));

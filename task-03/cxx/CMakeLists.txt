@@ -6,17 +6,11 @@ if("${PROJECT_VERSION}" STREQUAL "")
 endif()
 
 find_library(LIB_FMT fmt REQUIRED)
-
-option(LOGGING_ON      "turn on logging?"      NO)
-option(OPTIMIZE_ALLOCS "optimize allocations?" NO)
-
 add_executable(${PROJECT_NAME} main.cpp)
 
+option(LOGGING_ON "turn on logging?" NO)
 if(${LOGGING_ON})
     target_compile_definitions(${PROJECT_NAME} PRIVATE "LOGGING_ON")
-endif()
-if(${OPTIMIZE_ALLOCS})
-    target_compile_definitions(${PROJECT_NAME} PRIVATE "OPTIMIZE_ALLOCS")
 endif()
 
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -31,7 +25,9 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 
 # TODO: implement container component
 add_subdirectory(allocator)
-target_link_libraries(${PROJECT_NAME} PRIVATE allocator ${LIB_FMT})
+add_subdirectory(tool)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE allocator tool ${LIB_FMT})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin/)
 
