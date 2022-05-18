@@ -1,17 +1,31 @@
 #include <cstddef>
 #include <cstdlib>
+#include <cstring>
 #include <iostream>
 #include <new>
 #include <numeric>
 #include <utility>
 #include <vector>
 
-#include <boost/format.hpp>
+#include <fmt/format.h>
+
+// TODO: add tests
+// TODO: implement memory extension
+// TODO: move LOG into tool component
 
 #ifdef LOGGING_ON
-#define LOG(BOOST_FORMAT) \
+#define LOG(FORMAT, ...) \
     do { \
-        std::cout << (BOOST_FORMAT).str() << std::endl; \
+        const auto pfx = fmt::format("{} at {}:{}", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
+        const auto msg = fmt::format(FORMAT, ##__VA_ARGS__); \
+        std::cout \
+            << pfx << " | " + msg \
+            << std::endl; \
+    } while (false)
+#else
+#define LOG(FORMAT, ...) \
+    do { \
+        ;;;;; \
     } while (false)
 #endif
 
@@ -20,10 +34,11 @@ namespace mem::pool {
 template<typename T, auto N = 1024>
 class block {
 public:
-    static_assert(N > 0, "block pool could not be empty");
+    static_assert(N > 0, "block pool should not be empty");
 
     constexpr static auto size   = sizeof(T);
     constexpr static auto amount = N;
+    constexpr static auto bytes  = (amount * size);
 
     using value_type = T;
     using pointer    = T*;
@@ -35,59 +50,78 @@ public:
 
 #ifdef OPTIMIZE_ALLOCS
     block(): m_mem{init_mem()}, m_idx{init_idx()} {
-        ;;;
+        LOG("this = {}", static_cast<void*>(this));
+    }
+
+    block(const block& rhs): block() {
+        LOG("this = {}, rhs = {}", static_cast<void*>(this), static_cast<const void*>(&rhs));
+        std::memcpy(m_mem, rhs.m_mem, block::bytes);
+        m_idx = rhs.m_idx;
+    }
+
+    block(block&& rhs) noexcept {
+        LOG("this = {}, rhs = {}", static_cast<void*>(this), static_cast<void*>(&rhs));
+        m_mem = std::exchange(rhs.m_mem, nullptr);
+        m_idx = std::move(rhs.m_idx);
+    }
+
+    block& operator=(const block& rhs) {
+        LOG("this = {}, rhs = {}", static_cast<void*>(this), static_cast<const void*>(&rhs));
+        if (&rhs != this) {
+            std::memcpy(m_mem, rhs.m_mem, block::bytes);
+            m_idx = rhs.m_idx;
+        }
+        return (*this);
+    }
+
+    block& operator=(block&& rhs) noexcept {
+        LOG("this = {}, rhs = {}", static_cast<void*>(this), static_cast<void*>(&rhs));
+        if (&rhs != this) {
+            std::free(m_mem);
+            m_mem = std::exchange(rhs.m_mem, nullptr);
+            m_idx = std::move(rhs.m_idx);
+        }
+        return (*this);
     }
 
     virtual ~block() {
-       m_idx.clear(); std::free(m_mem);
+        LOG("this = {}", static_cast<void*>(this));
+        std::free(m_mem);
     }
-
-    // TODO: support copy and move
-
-    block(const block&) = delete;
-    block(block&&)      = delete;
-
-    block& operator=(const block&) = delete;
-    block& operator=(block&&)      = delete;
 #endif
 
     // O(N)
     block::pointer allocate(const std::size_t num) {
-    #ifdef LOGGING_ON
-        LOG(boost::format {"%1% | num = %2%"} % (__PRETTY_FUNCTION__) % num);
-    #endif
-    assert(num == 1);  // TODO: support continuous reservation
+        LOG("num = {}", num);
+        assert((num == 1) and "block pool permits allocate one element at a time");
     #ifdef OPTIMIZE_ALLOCS
-        block::pointer pbegin = nullptr;
-        for (auto ptr = m_mem; ptr < (m_mem + block::amount); ++ptr) {
-            if (m_idx.at(ptr_to_idx(ptr)) == block::occupation::take) {
-                continue;
+        const auto pblock = [this]() -> block::pointer {
+            for (auto ptr = m_mem; ptr < (m_mem + block::amount); ++ptr) {
+                if (m_idx.at(ptr_to_idx(ptr)) == block::occupation::free) {
+                    return ptr;
+                }
             }
-            pbegin = ptr; break;
-        }
-        if (not pbegin) {
+            return nullptr;
+        }();
+        if (not pblock) {
             throw std::bad_alloc{};
         }
-        // TODO: find pend
-        assert(m_idx.at(ptr_to_idx(pbegin)) == block::occupation::free);
-        m_idx.at(ptr_to_idx(pbegin)) = block::occupation::take;
-        return pbegin;
+        m_idx.at(ptr_to_idx(pblock)) = block::occupation::take;
+        assert(pblock >= m_mem);
+        return pblock;
     #else
-        return (block::pointer) std::calloc(num, block::size);
+        return (block::pointer) std::calloc(1, block::size);
     #endif
     }
 
-    // O(N)
-    void deallocate(const block::pointer ptr, const std::size_t num) {
-    #ifdef LOGGING_ON
-        LOG(boost::format {"%1% | ptr = %2%, num = %3%"} % (__PRETTY_FUNCTION__) % ptr % num);
-    #endif
-    assert(ptr and num);
+    // O(1)
+    void deallocate(const block::pointer ptr, const std::size_t num) noexcept {
+        LOG("ptr = {}, num = {}", static_cast<void*>(ptr), num);
+        assert((num == 1) and "block pool permits deallocate one element at a time");
     #ifdef OPTIMIZE_ALLOCS
-        for (auto it = ptr; it < (ptr + num); ++it) {
-            assert(m_idx.at(ptr_to_idx(it)) == block::occupation::take);
-            m_idx.at(ptr_to_idx(it)) = block::occupation::free;
-        }
+        assert((m_mem <= ptr) and (ptr < (m_mem + block::amount)) and "this memory is not owned by block pool");
+        assert(m_idx.at(ptr_to_idx(ptr)) == block::occupation::take);
+        m_idx.at(ptr_to_idx(ptr)) = block::occupation::free;
     #else
         std::free(ptr);
     #endif
@@ -96,18 +130,14 @@ public:
     // O(1)
     template<typename U, typename... Args>
     void construct(U* const ptr, Args&&... args) {
-    #ifdef LOGGING_ON
-        LOG(boost::format {"%1% | ptr = %2%"} % (__PRETTY_FUNCTION__) % ptr);
-    #endif
+        LOG("ptr = {}", static_cast<void*>(ptr));
         new (ptr) U(std::forward<Args>(args)...);
     }
 
     // O(1)
     template<typename U>
-    void destroy(U* const ptr) {
-    #ifdef LOGGING_ON
-        LOG(boost::format {"%1% | ptr = %2%"} % (__PRETTY_FUNCTION__) % ptr);
-    #endif
+    void destroy(U* const ptr) noexcept {
+        LOG("ptr = {}", static_cast<void*>(ptr));
         ptr->~U();
     }
 
@@ -129,8 +159,8 @@ private:
         return (ptr - m_mem);
     }
 
-    block::pointer const m_mem;
-    block::index         m_idx;
+    block::pointer m_mem;
+    block::index   m_idx;
 #endif
 };
 
