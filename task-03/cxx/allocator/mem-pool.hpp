@@ -1,3 +1,5 @@
+#pragma once
+
 #include <cstddef>
 #include <cstdlib>
 #include <cstring>
@@ -7,27 +9,10 @@
 #include <utility>
 #include <vector>
 
-#include <fmt/format.h>
+#include <logger.hpp>
 
 // TODO: add tests
 // TODO: implement memory extension
-// TODO: move LOG into tool component
-
-#ifdef LOGGING_ON
-#define LOG(FORMAT, ...) \
-    do { \
-        const auto pfx = fmt::format("{} at {}:{}", __PRETTY_FUNCTION__, __FILE__, __LINE__); \
-        const auto msg = fmt::format(FORMAT, ##__VA_ARGS__); \
-        std::cout \
-            << pfx << " | " + msg \
-            << std::endl; \
-    } while (false)
-#else
-#define LOG(FORMAT, ...) \
-    do { \
-        ;;;;; \
-    } while (false)
-#endif
 
 namespace mem::pool {
 

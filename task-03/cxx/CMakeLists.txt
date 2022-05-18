@@ -25,7 +25,9 @@ target_compile_options(${PROJECT_NAME} PRIVATE
 
 # TODO: implement container component
 add_subdirectory(allocator)
-target_link_libraries(${PROJECT_NAME} PRIVATE allocator ${LIB_FMT})
+add_subdirectory(tool)
+
+target_link_libraries(${PROJECT_NAME} PRIVATE allocator tool ${LIB_FMT})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin/)
 
