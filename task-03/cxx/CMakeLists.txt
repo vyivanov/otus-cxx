@@ -5,6 +5,8 @@ if("${PROJECT_VERSION}" STREQUAL "")
     message(FATAL_ERROR)
 endif()
 
+find_library(LIB_FMT fmt REQUIRED)
+
 option(LOGGING_ON      "turn on logging?"      NO)
 option(OPTIMIZE_ALLOCS "optimize allocations?" NO)
 
@@ -28,7 +30,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE
     -Werror)
 
 add_subdirectory(allocator)
-target_link_libraries(${PROJECT_NAME} PRIVATE allocator)
+target_link_libraries(${PROJECT_NAME} PRIVATE allocator ${LIB_FMT})
 
 install(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin/)
 

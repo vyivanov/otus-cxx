@@ -5,7 +5,7 @@
 #include <map>
 #include <utility>
 
-#include <boost/format.hpp>
+#include <fmt/format.h>
 #include <mem-pool.hpp>
 
 template<typename T>
@@ -42,6 +42,36 @@ auto factorial(const std::uint8_t n) noexcept {
 
 void evaluate_allocator() noexcept
 {
+    {
+        auto a_1 = mem::pool::block<int>{};
+        auto a_2 = mem::pool::block<int>{a_1};
+
+        (void) a_2;
+    }
+
+    {
+        auto a_1 = mem::pool::block<int>{};
+        auto a_2 = mem::pool::block<int>{std::move(a_1)};
+
+        (void) a_2;
+    }
+
+    {
+        auto a_1 = mem::pool::block<int>{};
+        auto a_2 = mem::pool::block<int>{};
+
+        a_1 = a_2;
+        a_1 = a_1;
+    }
+
+    {
+        auto a_1 = mem::pool::block<int>{};
+        auto a_2 = mem::pool::block<int>{};
+
+        a_1 = std::move(a_2);
+        a_1 = std::move(a_1);
+    }
+
     auto test = ::map<int, 10>{};
 
     test.insert({0, ::factorial<0>()});
@@ -59,9 +89,8 @@ void evaluate_allocator() noexcept
 
     for (const auto& [key, val]: test) {
         assert(::factorial(key) == val);
-        std::cout << (
-            boost::format {"%1% %2%" "\n"} % key % val
-        ).str();
+        std::cout
+            << fmt::format("{} {}" "\n", key, val);
     }
 
     test.erase(0);
