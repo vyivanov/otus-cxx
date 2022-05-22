@@ -1,0 +1,63 @@
+name: task-04 pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - main
+    paths:
+      - .github/workflows/task-04.yaml
+      - task-04/**
+jobs:
+  task-04:
+    runs-on: ubuntu-22.04
+    env:
+      SEMVER: 0.0.1
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
+        run: |
+          sudo apt-get install -y ninja-build
+      - name: Build cxx
+        working-directory: task-04/cxx/
+        run: |
+          cmake -Bbuild/ -GNinja -DSEMVER=${{ env.SEMVER }} && cmake --build build/
+      - name: Verify cxx
+        working-directory: task-04/cxx/
+        run: |
+          ./build/print-ip
+      - name: Package cxx
+        working-directory: task-04/cxx/
+        run: |
+          cmake --build build/ --target package
+      - name: Install package
+        working-directory: task-04/cxx/build/
+        run: |
+          sudo dpkg --install print-ip_${{ env.SEMVER }}_amd64.deb
+      - name: Verify package
+        working-directory: task-04/cxx/
+        run: |
+          print-ip
+      - name: Create release
+        if: github.event.pull_request.merged
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: task-04/${{ env.SEMVER }}
+          release_name: Release task-04/${{ env.SEMVER }}
+      - name: Upload release
+        if: github.event.pull_request.merged
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: task-04/cxx/build/print-ip_${{ env.SEMVER }}_amd64.deb
+          asset_name: print-ip_${{ env.SEMVER }}_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
