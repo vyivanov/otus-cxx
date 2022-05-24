@@ -61,3 +61,12 @@ jobs:
           asset_path: task-04/cxx/build/print-ip_${{ env.SEMVER }}_amd64.deb
           asset_name: print-ip_${{ env.SEMVER }}_amd64.deb
           asset_content_type: application/vnd.debian.binary-package
+      - name: GH Pages Deployment
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: task-04/doc/
+          enable_jekyll: false
+          allow_empty_commit: false
+          force_orphan: true
+          publish_branch: pages-task-04
