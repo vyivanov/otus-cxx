@@ -1,0 +1,37 @@
+name: doxygen pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - main
+    paths:
+      - .github/workflows/doxygen.yaml
+      - task-*/**
+jobs:
+  doxygen:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
+        run: |
+          sudo apt-get install -y doxygen graphviz && mkdir build/
+      - name: Build documentation
+        run: |
+          for task in task-*/; do
+            if [ -f ${task}/doxyfile ]; then
+              doxygen ${task}/doxyfile
+            fi
+          done
+      - name: Deploy documentation
+        if: github.event.pull_request.merged
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: build/docs/
+          publish_branch: doxygen
+          enable_jekyll: false
+          force_orphan: true
