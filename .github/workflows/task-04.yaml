@@ -33,14 +33,10 @@ jobs:
         working-directory: task-04/cxx/
         run: |
           cmake --build build/ --target package
-      - name: Install package
+      - name: Verify package
         working-directory: task-04/cxx/build/
         run: |
-          sudo dpkg --install print-ip_${{ env.SEMVER }}_amd64.deb
-      - name: Verify package
-        working-directory: task-04/cxx/
-        run: |
-          print-ip
+          sudo dpkg --install print-ip_${{ env.SEMVER }}_amd64.deb && print-ip
       - name: Create release
         if: github.event.pull_request.merged
         id: create-release
