@@ -6,8 +6,16 @@
 
 #include <type-helper.hpp>
 
+// TODO: add tuple support
+
 namespace printer {
 
+/**
+ * @brief Print IP from integer-like input
+ *
+ * @param[in] ip Value to be printed
+ * @return std::string
+ */
 template<typename T,
          typename std::enable_if_t<std::is_integral_v<T>, bool> = true>
 auto print_ip(const T& ip) -> std::string {
@@ -30,6 +38,12 @@ auto print_ip(const T& ip) -> std::string {
     return out;
 }
 
+/**
+ * @brief Print IP from container-like input
+ *
+ * @param[in] ip Value to be printed
+ * @return std::string
+ */
 template<typename T,
          typename std::enable_if_t<is_container_v<T>, bool> = true>
 auto print_ip(const T& ip) -> std::string {
@@ -42,6 +56,12 @@ auto print_ip(const T& ip) -> std::string {
     return out;
 }
 
+/**
+ * @brief Print IP from string-like input
+ *
+ * @param[in] ip Value to be printed
+ * @return std::string
+ */
 auto print_ip(const std::string& ip) -> std::string {
     std::cout << ip << std::endl;
     return ip;
