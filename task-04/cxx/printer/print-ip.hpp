@@ -1,6 +1,5 @@
 #pragma once
 
-#include <iostream>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -35,7 +34,6 @@ auto print_ip(const T& ip) -> std::string {
         inp = (inp >> 8);
     }
 
-    std::cout << out << std::endl;
     return out;
 }
 
@@ -53,7 +51,6 @@ auto print_ip(const T& ip) -> std::string {
         out = out + std::to_string(octet) + '.';
     }
     out.pop_back();
-    std::cout << out << std::endl;
     return out;
 }
 
@@ -64,7 +61,6 @@ auto print_ip(const T& ip) -> std::string {
  * @return std::string
  */
 auto print_ip(const std::string_view ip) -> std::string {
-    std::cout << ip << std::endl;
     return std::string{ip};
 }
 
