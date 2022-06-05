@@ -2,6 +2,7 @@
 #include <iostream>
 #include <list>
 #include <string>
+#include <tuple>
 #include <vector>
 
 #include <print-ip.hpp>
@@ -17,6 +18,7 @@ int main()
     const auto e = print_ip(std::string{"127.0.0.1"});
     const auto f = print_ip(std::vector<int>{100, 200, 300, 400});
     const auto g = print_ip(std::list  <int>{400, 300, 200, 100});
+    const auto h = print_ip(std::make_tuple (192, 168, 1, 1));
 
     assert(a == "255");
     assert(b == "0.0");
@@ -25,6 +27,7 @@ int main()
     assert(e == "127.0.0.1");
     assert(f == "100.200.300.400");
     assert(g == "400.300.200.100");
+    assert(h == "192.168.1.1");
 
     std::cout << a + '\n'
               << b + '\n'
@@ -32,5 +35,6 @@ int main()
               << d + '\n'
               << e + '\n'
               << f + '\n'
-              << g + '\n';
+              << g + '\n'
+              << h + '\n';
 }
