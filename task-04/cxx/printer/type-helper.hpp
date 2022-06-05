@@ -24,4 +24,11 @@ struct is_container<std::vector<T>> {
 template<typename T>
 inline constexpr bool is_container_v = is_container<T>::value;
 
+static_assert(not is_container_v<int>);
+static_assert(not is_container_v<std::list  <double>>);
+static_assert(not is_container_v<std::vector<double>>);
+
+static_assert(is_container_v<std::list  <int>>);
+static_assert(is_container_v<std::vector<int>>);
+
 }
