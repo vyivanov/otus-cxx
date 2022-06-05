@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <type_traits>
 #include <vector>
 
 namespace printer {
@@ -12,12 +13,12 @@ struct is_container {
 
 template<typename T>
 struct is_container<std::list<T>> {
-    static constexpr bool value = true;
+    static constexpr bool value = std::is_integral_v<T>;
 };
 
 template<typename T>
 struct is_container<std::vector<T>> {
-    static constexpr bool value = true;
+    static constexpr bool value = std::is_integral_v<T>;
 };
 
 template<typename T>
