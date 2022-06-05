@@ -1,12 +1,11 @@
 #pragma once
 
-#include <iostream>
 #include <string>
+#include <string_view>
+#include <tuple>
 #include <type_traits>
 
 #include <type-helper.hpp>
-
-// TODO: add tuple support
 
 namespace printer {
 
@@ -34,7 +33,6 @@ auto print_ip(const T& ip) -> std::string {
         inp = (inp >> 8);
     }
 
-    std::cout << out << std::endl;
     return out;
 }
 
@@ -52,7 +50,22 @@ auto print_ip(const T& ip) -> std::string {
         out = out + std::to_string(octet) + '.';
     }
     out.pop_back();
-    std::cout << out << std::endl;
+    return out;
+}
+
+/**
+ * @brief Print IP from tuple-like input
+ *
+ * @param[in] ip Value to be printed
+ * @return std::string
+ */
+template<typename T, size_t I = 0,
+         typename std::enable_if_t<is_tuple_v<T>, bool> = true>
+auto print_ip(const T& ip) -> std::string {
+    auto out = std::to_string(std::get<I>(ip));
+    if constexpr ((I+1) < std::tuple_size_v<T>) {
+        out += '.' + print_ip<T, (I+1)>(ip);
+    }
     return out;
 }
 
@@ -62,9 +75,8 @@ auto print_ip(const T& ip) -> std::string {
  * @param[in] ip Value to be printed
  * @return std::string
  */
-auto print_ip(const std::string& ip) -> std::string {
-    std::cout << ip << std::endl;
-    return ip;
+auto print_ip(const std::string_view ip) -> std::string {
+    return std::string{ip};
 }
 
 }
