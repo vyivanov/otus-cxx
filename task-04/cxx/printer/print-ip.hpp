@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include <type-helper.hpp>
@@ -62,9 +63,9 @@ auto print_ip(const T& ip) -> std::string {
  * @param[in] ip Value to be printed
  * @return std::string
  */
-auto print_ip(const std::string& ip) -> std::string {
+auto print_ip(const std::string_view ip) -> std::string {
     std::cout << ip << std::endl;
-    return ip;
+    return std::string{ip};
 }
 
 }
