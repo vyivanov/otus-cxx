@@ -1,6 +1,7 @@
 #pragma once
 
 #include <list>
+#include <tuple>
 #include <type_traits>
 #include <vector>
 
@@ -30,5 +31,18 @@ static_assert(not is_container_v<std::vector<double>>);
 
 static_assert(is_container_v<std::list  <int>>);
 static_assert(is_container_v<std::vector<int>>);
+
+template<typename... Tp>
+struct is_tuple {
+    static constexpr bool value = false;
+};
+
+template<typename... Tp>
+struct is_tuple<std::tuple<Tp...>> {
+    static constexpr bool value = std::conjunction_v<std::is_integral<Tp>...>;
+};
+
+template<typename... Tp>
+inline constexpr bool is_tuple_v = is_tuple<Tp...>::value;
 
 }
