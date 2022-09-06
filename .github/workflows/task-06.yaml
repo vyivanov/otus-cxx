@@ -1,0 +1,59 @@
+name: task-06 pipeline
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - closed
+    branches:
+      - main
+    paths:
+      - .github/workflows/task-06.yaml
+      - task-06/**
+jobs:
+  task-06:
+    runs-on: ubuntu-22.04
+    env:
+      SEMVER: 0.0.1
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Provision environment
+        run: |
+          sudo apt-get install -y ninja-build
+      - name: Build cxx
+        working-directory: task-06/cxx/
+        run: |
+          cmake -Bbuild/ -GNinja -DSEMVER=${{ env.SEMVER }} && cmake --build build/
+      - name: Verify cxx
+        working-directory: task-06/cxx/
+        run: |
+          ./build/tensor
+      - name: Package cxx
+        working-directory: task-06/cxx/
+        run: |
+          cmake --build build/ --target package
+      - name: Verify package
+        working-directory: task-06/cxx/build/
+        run: |
+          sudo dpkg --install tensor_${{ env.SEMVER }}_amd64.deb && tensor
+      - name: Create release
+        if: github.event.pull_request.merged
+        id: create-release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: task-06/${{ env.SEMVER }}
+          release_name: Release task-06/${{ env.SEMVER }}
+      - name: Upload release
+        if: github.event.pull_request.merged
+        id: upload-release
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create-release.outputs.upload_url }}
+          asset_path: task-06/cxx/build/tensor_${{ env.SEMVER }}_amd64.deb
+          asset_name: tensor_${{ env.SEMVER }}_amd64.deb
+          asset_content_type: application/vnd.debian.binary-package
