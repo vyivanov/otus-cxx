@@ -1,6 +1,7 @@
 #pragma once
 
 #include <core/inc/types.hpp>
+#include <fstream>
 
 #include <core/inc/item-reader/item-reader-iface.hpp>
 
@@ -16,6 +17,31 @@ struct LocalFileReader: ItemReader
 
     ItemInfo read_stats(ItemIdx idx) const override;
     ItemData read_chunk(ItemIdx idx) override;
+
+private:
+
+    struct FileInfo
+    {
+        std::filesystem::path path;
+        std::ifstream fptr;
+    };
+
+    struct Info
+    {
+        FileInfo file;
+        ItemInfo item;
+    };
+
+    using InfoList = std::vector<Info>;
+
+    const FileList m_file_list;
+    const DataSize m_chunk_size;
+
+    ItemList m_items;
+    InfoList m_infos;
+
+    bool is_inited() const noexcept;
+    void init();
 
 };
 
