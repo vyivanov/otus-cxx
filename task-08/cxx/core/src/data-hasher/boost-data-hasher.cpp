@@ -3,6 +3,8 @@
 #include <memory>
 #include <core/inc/types.hpp>
 
+#include <boost/functional/hash.hpp>
+
 #include <core/inc/data-hasher/data-hasher-iface.hpp>
 
 namespace ddt {
@@ -14,10 +16,15 @@ auto BoostDataHasher::create() -> DataHasher::Ptr
 
 auto BoostDataHasher::combine(const ItemData& chunk, const HashData& seed) -> HashData
 {
-    static_cast<void>(chunk);
-    static_cast<void>(seed);
+    if (chunk.empty())
+    {
+        throw std::length_error{std::string{}};
+    }
 
-    return HashData{};
+    auto mutable_seed = seed;
+    boost::hash_range(mutable_seed, chunk.cbegin(), chunk.cend());
+
+    return mutable_seed;
 }
 
 }

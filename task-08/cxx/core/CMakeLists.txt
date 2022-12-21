@@ -1,4 +1,5 @@
 project(core)
+find_package(Boost REQUIRED COMPONENTS headers)
 
 set(LIB_INC inc/data-hasher/boost-data-hasher.hpp
             inc/data-hasher/data-hasher-iface.hpp
@@ -16,6 +17,7 @@ set(LIB_SRC src/data-hasher/boost-data-hasher.cpp
 
 add_library(${PROJECT_NAME} STATIC ${LIB_INC} ${LIB_SRC})
 
+target_include_directories(${PROJECT_NAME} PRIVATE Boost::headers)
 target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_compile_options(${PROJECT_NAME} PUBLIC
