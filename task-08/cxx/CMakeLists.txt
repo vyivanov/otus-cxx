@@ -5,6 +5,8 @@ if("${PROJECT_VERSION}" STREQUAL "")
     message(FATAL_ERROR)
 endif()
 
+add_subdirectory(cli)
+
 set(CPACK_GENERATOR                "DEB")
 set(CPACK_DEBIAN_FILE_NAME         "DEB-DEFAULT")
 set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS "ON")
