@@ -5,8 +5,11 @@ if("${PROJECT_VERSION}" STREQUAL "")
     message(FATAL_ERROR)
 endif()
 
+enable_testing()
+
 add_subdirectory(cli)
 add_subdirectory(core)
+add_subdirectory(tests)
 
 set(CPACK_GENERATOR                "DEB")
 set(CPACK_DEBIAN_FILE_NAME         "DEB-DEFAULT")
