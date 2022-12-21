@@ -6,6 +6,7 @@ if("${PROJECT_VERSION}" STREQUAL "")
 endif()
 
 add_subdirectory(cli)
+add_subdirectory(core)
 
 set(CPACK_GENERATOR                "DEB")
 set(CPACK_DEBIAN_FILE_NAME         "DEB-DEFAULT")
