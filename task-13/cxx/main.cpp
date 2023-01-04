@@ -104,8 +104,12 @@ private:
 
 }
 
-class LogisticRegression {
+namespace Inference {
+
+class Classifier {
 public:
+    using Ptr = std::shared_ptr<const Classifier>;
+
     using CoeffType = float;
     using ClassType = int;
 
@@ -113,11 +117,16 @@ public:
     using Probabs = Tools::SquareBuffer<CoeffType, class WeightsTag>;
     using Classes = Tools::FlatBuffer<ClassType, class ClassesTag>;
 
-    ////////////////
+    virtual void predict(const Factors& samples, Probabs& probabs, Classes& classes) const = 0;
+    virtual void predict_proba(const Factors& samples, Probabs& probabs) const = 0;
+};
 
+class LogisticRegression: public Classifier {
+public:
     using Weights = Tools::SquareBuffer<CoeffType, class WeightsTag>;
     using Intercepts = Tools::FlatBuffer<CoeffType, class InterceptsTag>;
 
+public:
     template<typename T>
     using ColVector = Eigen::Matrix<T, Eigen::Dynamic, 1, Eigen::ColMajor>;
 
@@ -145,6 +154,7 @@ public:
     template<typename T>
     using ConstMatrixMap = Eigen::Map<const Matrix<T>>;
 
+public:
     LogisticRegression(const Weights& coeffs, const Intercepts& biases)
         : m_models_n(coeffs.rows())
         , m_features_n(coeffs.cols())
@@ -172,7 +182,7 @@ public:
 #endif
     }
 
-    void predict(const Factors& samples, Probabs& probabs, Classes& classes) const {
+    void predict(const Factors& samples, Probabs& probabs, Classes& classes) const override {
         predict_proba(samples, probabs);
         assert(probabs.rows() == samples.rows());
         assert(probabs.cols() == m_models_n);
@@ -192,7 +202,7 @@ public:
         }
     }
 
-    void predict_proba(const Factors& samples, Probabs& probabs) const {
+    void predict_proba(const Factors& samples, Probabs& probabs) const override {
         assert(not samples.is_empty());
         assert(not probabs.is_empty());
 
@@ -240,13 +250,15 @@ private:
 
 };
 
+}
+
 int main() {
     const auto parse_file = [](const std::filesystem::path& path, const char delim, size_t row_n, size_t col_n) {
         assert(std::filesystem::exists(path));
         auto stream = std::ifstream{path};
 
-        auto first_column = LogisticRegression::Intercepts{row_n};
-        auto rest_columns = LogisticRegression::Factors{row_n, col_n};
+        auto first_column = Inference::LogisticRegression::Intercepts{row_n};
+        auto rest_columns = Inference::LogisticRegression::Factors{row_n, col_n};
 
         auto line_str = std::string{};
         auto line_ss = std::istringstream{};
@@ -278,10 +290,8 @@ int main() {
     assert(classes_true.size() == 12'000);
     assert(samples.rows() == 12'000 and samples.cols() == 784);
 
-    auto probabs_pred = LogisticRegression::Probabs(samples.rows(), coeffs.rows());
-    auto classes_pred = LogisticRegression::Classes(samples.rows());
-
-//    std::cout << LogisticRegression::ConstMatrixMap<float>(samples.ptr(), samples.rows(), samples.cols());
+    auto probabs_pred = Inference::LogisticRegression::Probabs(samples.rows(), coeffs.rows());
+    auto classes_pred = Inference::LogisticRegression::Classes(samples.rows());
 
     for (auto row{0u}; row < samples.rows(); ++row) {
         for (auto col{0u}; col < samples.cols(); ++col) {
@@ -289,19 +299,21 @@ int main() {
         }
     }
 
-    const auto clf = LogisticRegression{coeffs, biases};
-    clf.predict(samples, probabs_pred, classes_pred);
+    const Inference::Classifier::Ptr clf =
+        std::make_unique<Inference::LogisticRegression>(coeffs, biases);
+
+    clf->predict(samples, probabs_pred, classes_pred);
 
     if (samples.rows() < 15) {
         std::cout <<
             ">> Probability distributions :\n" <<
-            LogisticRegression::ConstMatrixMap<LogisticRegression::CoeffType>(
+            Inference::LogisticRegression::ConstMatrixMap<Inference::LogisticRegression::CoeffType>(
                 probabs_pred.ptr(),
                 samples.rows(), coeffs.rows()) << "\n\n";
 
         std::cout <<
             ">> Predicted classes :\n" <<
-            LogisticRegression::ConstColVectorMap<LogisticRegression::ClassType>(
+            Inference::LogisticRegression::ConstColVectorMap<Inference::LogisticRegression::ClassType>(
                 classes_pred.ptr(),
                 samples.rows()) << "\n\n";
     }
