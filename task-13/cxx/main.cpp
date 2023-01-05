@@ -5,7 +5,6 @@
 #include <filesystem>
 #include <stdexcept>
 #include <cstdlib>
-#include <eigen3/Eigen/Core>
 
 #define PRINT_PARAMETERS 1
 
@@ -117,16 +116,33 @@ public:
     using Probabs = Tools::SquareBuffer<CoeffType, class WeightsTag>;
     using Classes = Tools::FlatBuffer<ClassType, class ClassesTag>;
 
-    virtual void predict(const Factors& samples, Probabs& probabs, Classes& classes) const = 0;
-    virtual void predict_proba(const Factors& samples, Probabs& probabs) const = 0;
+    virtual void predict(const Factors&, Probabs&, Classes&) const = 0;
+    virtual void predict(const Factors&, Probabs&) const = 0;
 };
+
+}
+
+namespace Inference {
 
 class LogisticRegression: public Classifier {
 public:
     using Weights = Tools::SquareBuffer<CoeffType, class WeightsTag>;
     using Intercepts = Tools::FlatBuffer<CoeffType, class InterceptsTag>;
 
-public:
+    LogisticRegression(const Weights&, const Intercepts&);
+
+    void predict(const Factors&, Probabs&, Classes&) const override;
+    void predict(const Factors&, Probabs&) const override;
+
+private:
+    class Impl;
+    const std::unique_ptr<const Impl> m_pimpl;
+};
+
+}
+
+#include <eigen3/Eigen/Core>
+
     template<typename T>
     using ColVector = Eigen::Matrix<T, Eigen::Dynamic, 1, Eigen::ColMajor>;
 
@@ -154,8 +170,11 @@ public:
     template<typename T>
     using ConstMatrixMap = Eigen::Map<const Matrix<T>>;
 
+namespace Inference {
+
+class LogisticRegression::Impl {
 public:
-    LogisticRegression(const Weights& coeffs, const Intercepts& biases)
+    Impl(const Weights& coeffs, const Intercepts& biases)
         : m_models_n(coeffs.rows())
         , m_features_n(coeffs.cols())
         , m_coeffs_mat(to_eigen_matrix(coeffs).transpose())
@@ -182,12 +201,12 @@ public:
 #endif
     }
 
-    void predict(const Factors& samples, Probabs& probabs, Classes& classes) const override {
-        predict_proba(samples, probabs);
-        assert(probabs.rows() == samples.rows());
-        assert(probabs.cols() == m_models_n);
+    void predict(const Factors& samples, Probabs& probabs, Classes& classes) const {
+        predict(samples, probabs);
 
+        assert(not classes.is_empty());
         assert(classes.size() == probabs.rows());
+
         const auto probabs_mat = ConstMatrixMap<CoeffType>(probabs.ptr(), probabs.rows(), probabs.cols());
         auto classes_vec = ColVectorMap<ClassType>(classes.ptr(), classes.size());
 
@@ -202,7 +221,7 @@ public:
         }
     }
 
-    void predict_proba(const Factors& samples, Probabs& probabs) const override {
+    void predict(const Factors& samples, Probabs& probabs) const {
         assert(not samples.is_empty());
         assert(not probabs.is_empty());
 
@@ -249,6 +268,26 @@ private:
     const RowVector<CoeffType> m_biases_vec;
 
 };
+
+}
+
+namespace Inference {
+
+LogisticRegression::LogisticRegression(const Weights& coeffs, const Intercepts& biases)
+    : m_pimpl(std::make_unique<Impl>(coeffs, biases))
+{
+
+}
+
+void LogisticRegression::predict(const Factors& samples, Probabs& probabs, Classes& classes) const
+{
+    m_pimpl->predict(samples, probabs, classes);
+}
+
+void LogisticRegression::predict(const Factors& samples, Probabs& probabs) const
+{
+    m_pimpl->predict(samples, probabs);
+}
 
 }
 
@@ -307,13 +346,13 @@ int main() {
     if (samples.rows() < 15) {
         std::cout <<
             ">> Probability distributions :\n" <<
-            Inference::LogisticRegression::ConstMatrixMap<Inference::LogisticRegression::CoeffType>(
+            ConstMatrixMap<Inference::Classifier::CoeffType>(
                 probabs_pred.ptr(),
                 samples.rows(), coeffs.rows()) << "\n\n";
 
         std::cout <<
             ">> Predicted classes :\n" <<
-            Inference::LogisticRegression::ConstColVectorMap<Inference::LogisticRegression::ClassType>(
+            ConstColVectorMap<Inference::Classifier::ClassType>(
                 classes_pred.ptr(),
                 samples.rows()) << "\n\n";
     }
