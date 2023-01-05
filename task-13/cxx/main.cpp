@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <cstdlib>
 
+#include "inc/priv/types.hpp"
 #include "inc/pub/tools.hpp"
 #include "inc/pub/types.hpp"
 
@@ -17,9 +18,9 @@ class Classifier {
 public:
     using Ptr = std::shared_ptr<const Classifier>;
 
-    using Factors = Tools::SquareBuffer<CoeffType, class FixMe>;
-    using Probabs = Tools::SquareBuffer<CoeffType, class FixMe>;
-    using Classes = Tools::FlatBuffer<ClassType, class ClassesTag>;
+    using Factors = Tools::SquareBuffer<Type::Coeff, class FixMe>;
+    using Probabs = Tools::SquareBuffer<Type::Coeff, class FixMe>;
+    using Classes = Tools::FlatBuffer<Type::Class, class ClassesTag>;
 
     virtual void predict(const Factors&, Probabs&, Classes&) const = 0;
     virtual void predict(const Factors&, Probabs&) const = 0;
@@ -35,8 +36,8 @@ namespace Inference {
 
 class LogisticRegression: public Classifier {
 public:
-    using Weights = Tools::SquareBuffer<CoeffType, class FixMe>;
-    using Intercepts = Tools::FlatBuffer<CoeffType, class InterceptsTag>;
+    using Weights = Tools::SquareBuffer<Type::Coeff, class FixMe>;
+    using Intercepts = Tools::FlatBuffer<Type::Coeff, class InterceptsTag>;
 
     LogisticRegression(const Weights&, const Intercepts&);
 
@@ -46,39 +47,6 @@ public:
 private:
     const std::unique_ptr<const Impl::LogisticRegression> m_pimpl;
 };
-
-}
-
-#include <eigen3/Eigen/Core>
-
-namespace Inference::Impl::Tools {
-
-template<typename T>
-using ColVector = Eigen::Matrix<T, Eigen::Dynamic, 1, Eigen::ColMajor>;
-
-template<typename T>
-using RowVector = Eigen::Matrix<T, 1, Eigen::Dynamic, Eigen::RowMajor>;
-
-template<typename T>
-using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
-
-template<typename T>
-using ColVectorMap = Eigen::Map<ColVector<T>>;
-
-template<typename T>
-using ConstColVectorMap = Eigen::Map<const ColVector<T>>;
-
-template<typename T>
-using RowVectorMap = Eigen::Map<RowVector<T>>;
-
-template<typename T>
-using ConstRowVectorMap = Eigen::Map<const RowVector<T>>;
-
-template<typename T>
-using MatrixMap = Eigen::Map<Matrix<T>>;
-
-template<typename T>
-using ConstMatrixMap = Eigen::Map<const Matrix<T>>;
 
 }
 
@@ -122,15 +90,15 @@ public:
         assert(not classes.is_empty());
         assert(classes.size() == probabs.rows());
 
-        const auto probabs_mat = Tools::ConstMatrixMap<CoeffType>(probabs.ptr(), probabs.rows(), probabs.cols());
-        auto classes_vec = Tools::ColVectorMap<ClassType>(classes.ptr(), classes.size());
+        const auto probabs_mat = Type::ConstMatrixMap<Inference::Type::Coeff>(probabs.ptr(), probabs.rows(), probabs.cols());
+        auto classes_vec = Type::ColVectorMap<Inference::Type::Class>(classes.ptr(), classes.size());
 
-        auto class_idx = ClassType{};
+        auto class_idx = Inference::Type::Class{};
         for (auto i{0u}; i < probabs_mat.rows(); ++i) {
             if (m_models_n > 1) {
                 probabs_mat.row(i).maxCoeff(&class_idx);
             } else {
-                class_idx = (probabs_mat(i, 0) < CoeffType{0.5}) ? ClassType{0} : ClassType{1};
+                class_idx = (probabs_mat(i, 0) < Inference::Type::Coeff{0.5}) ? Inference::Type::Class{0} : Inference::Type::Class{1};
             }
             classes_vec(i, 0) = class_idx;
         }
@@ -146,8 +114,8 @@ public:
         assert(samples.cols() == m_features_n);
         assert(probabs.cols() == m_models_n);
 
-        const auto samples_mat = Tools::ConstMatrixMap<CoeffType>(samples.ptr(), samples.rows(), samples.cols());
-        auto probabs_mat = Tools::MatrixMap<CoeffType>(probabs.ptr(), probabs.rows(), probabs.cols());
+        const auto samples_mat = Type::ConstMatrixMap<Inference::Type::Coeff>(samples.ptr(), samples.rows(), samples.cols());
+        auto probabs_mat = Type::MatrixMap<Inference::Type::Coeff>(probabs.ptr(), probabs.rows(), probabs.cols());
 
         probabs_mat = (samples_mat * m_coeffs_mat).rowwise() + m_biases_vec;
         sigmoid(probabs_mat);
@@ -160,28 +128,28 @@ public:
 private:
 
     [[nodiscard]]
-    static Tools::Matrix<CoeffType> to_eigen_matrix(const Inference::LogisticRegression::Weights& coeffs) {
-        return Tools::ConstMatrixMap<CoeffType>(coeffs.ptr(), coeffs.rows(), coeffs.cols());
+    static Type::Matrix<Inference::Type::Coeff> to_eigen_matrix(const Inference::LogisticRegression::Weights& coeffs) {
+        return Type::ConstMatrixMap<Inference::Type::Coeff>(coeffs.ptr(), coeffs.rows(), coeffs.cols());
     }
 
     [[nodiscard]]
-    static Tools::ColVector<CoeffType> to_eigen_vector(const Inference::LogisticRegression::Intercepts& biases) {
-        return Tools::ConstColVectorMap<CoeffType>(biases.ptr(), biases.size());
+    static Type::ColVector<Inference::Type::Coeff> to_eigen_vector(const Inference::LogisticRegression::Intercepts& biases) {
+        return Type::ConstColVectorMap<Inference::Type::Coeff>(biases.ptr(), biases.size());
     }
 
-    static void sigmoid(Tools::MatrixMap<CoeffType>& logits) {
-        logits = ((-logits.array()).exp() + CoeffType{1}).inverse();
+    static void sigmoid(Type::MatrixMap<Inference::Type::Coeff>& logits) {
+        logits = ((-logits.array()).exp() + Inference::Type::Coeff{1}).inverse();
     }
 
-    static void softmax(Tools::MatrixMap<CoeffType>& logits) {
+    static void softmax(Type::MatrixMap<Inference::Type::Coeff>& logits) {
         logits = logits.array().exp().colwise() / logits.array().exp().rowwise().sum();
     }
 
     const size_t m_models_n;
     const size_t m_features_n;
 
-    const Tools::Matrix<CoeffType>    m_coeffs_mat;
-    const Tools::RowVector<CoeffType> m_biases_vec;
+    const Type::Matrix<Inference::Type::Coeff>    m_coeffs_mat;
+    const Type::RowVector<Inference::Type::Coeff> m_biases_vec;
 
 };
 
@@ -262,13 +230,13 @@ int main() {
     if (samples.rows() < 15) {
         std::cout <<
             ">> Probability distributions :\n" <<
-            Inference::Impl::Tools::ConstMatrixMap<Inference::CoeffType>(
+            Inference::Impl::Type::ConstMatrixMap<Inference::Type::Coeff>(
                 probabs_pred.ptr(),
                 samples.rows(), coeffs.rows()) << "\n\n";
 
         std::cout <<
             ">> Predicted classes :\n" <<
-            Inference::Impl::Tools::ConstColVectorMap<Inference::ClassType>(
+            Inference::Impl::Type::ConstColVectorMap<Inference::Type::Class>(
                 classes_pred.ptr(),
                 samples.rows()) << "\n\n";
     }

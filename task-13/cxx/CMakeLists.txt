@@ -8,8 +8,10 @@ set(LIB_INC_PUB inc/pub/tools.inl
                 inc/pub/tools.hpp
                 inc/pub/types.hpp)
 
+set(LIB_INC_PRIV inc/priv/types.hpp)
+
 set(LIB_SRC src/logistic-regression.cpp)
 
-add_library(${PROJECT_NAME} SHARED ${LIB_INC_PUB} ${LIB_SRC})
+add_library(${PROJECT_NAME} SHARED ${LIB_INC_PUB} ${LIB_INC_PRIV} ${LIB_SRC})
 
 add_executable(${PROJECT_NAME}-main main.cpp)

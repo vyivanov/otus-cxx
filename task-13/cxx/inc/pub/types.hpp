@@ -1,8 +1,8 @@
 #pragma once
 
-namespace Inference {
+namespace Inference::Type {
 
-using CoeffType = float;
-using ClassType = uint32_t;
+using Coeff = float;
+using Class = uint32_t;
 
 }
