@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cstddef>
 
+namespace Inference::Tools {
+
 template<typename Type, typename Tag>
 FlatBuffer<Type, Tag>::FlatBuffer(const size_t n)
 {
@@ -110,4 +112,6 @@ size_t SquareBuffer<Type, Tag>::to_idx(const size_t row, const size_t col) const
 {
     assert((row < m_row_n) and (col < m_col_n));
     return (row * m_col_n + col);
+}
+
 }

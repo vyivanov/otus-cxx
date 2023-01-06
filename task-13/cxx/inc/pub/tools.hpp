@@ -56,6 +56,6 @@ private:
     std::vector<Type> m_buffer = {};
 };
 
-#include "tools.inl"
-
 }
+
+#include "tools.inl"

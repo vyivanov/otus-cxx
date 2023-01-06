@@ -6,174 +6,13 @@
 #include <stdexcept>
 #include <cstdlib>
 
-#include "inc/priv/types.hpp"
-#include "inc/pub/tools.hpp"
-#include "inc/pub/types.hpp"
+#include <cuda_runtime.h>
 
-#define PRINT_PARAMETERS 1
+#include <priv/types.hpp>
+#include <pub/tools.hpp>
+#include <pub/types.hpp>
 
-namespace Inference {
-
-class Classifier {
-public:
-    using Ptr = std::shared_ptr<const Classifier>;
-
-    using Factors = Tools::SquareBuffer<Type::Coeff, class FixMe>;
-    using Probabs = Tools::SquareBuffer<Type::Coeff, class FixMe>;
-    using Classes = Tools::FlatBuffer<Type::Class, class ClassesTag>;
-
-    virtual void predict(const Factors&, Probabs&, Classes&) const = 0;
-    virtual void predict(const Factors&, Probabs&) const = 0;
-};
-
-}
-
-namespace Inference::Impl {
-class LogisticRegression;
-}
-
-namespace Inference {
-
-class LogisticRegression: public Classifier {
-public:
-    using Weights = Tools::SquareBuffer<Type::Coeff, class FixMe>;
-    using Intercepts = Tools::FlatBuffer<Type::Coeff, class InterceptsTag>;
-
-    LogisticRegression(const Weights&, const Intercepts&);
-
-    void predict(const Factors&, Probabs&, Classes&) const override;
-    void predict(const Factors&, Probabs&) const override;
-
-private:
-    const std::unique_ptr<const Impl::LogisticRegression> m_pimpl;
-};
-
-}
-
-namespace Inference::Impl {
-
-class LogisticRegression {
-public:
-    LogisticRegression(const Inference::LogisticRegression::Weights& coeffs,
-                       const Inference::LogisticRegression::Intercepts& biases)
-        : m_models_n(coeffs.rows())
-        , m_features_n(coeffs.cols())
-        , m_coeffs_mat(to_eigen_matrix(coeffs).transpose())
-        , m_biases_vec(to_eigen_vector(biases).transpose())
-    {
-        assert(not coeffs.is_empty());
-        assert(not biases.is_empty());
-
-        assert(m_coeffs_mat.size());
-        assert(m_biases_vec.size());
-
-        assert(m_coeffs_mat.rows() == m_features_n);
-        assert(m_coeffs_mat.cols() == m_models_n);
-
-        assert(m_biases_vec.rows() == 1);
-        assert(m_biases_vec.cols() == m_models_n);
-
-#if (PRINT_PARAMETERS == 1)
-        std::cout << "[ models_num ]\n"   << m_models_n   << "\n\n";
-        std::cout << "[ features_num ]\n" << m_features_n << "\n\n";
-
-        std::cout << "[ coeffs ]\n" << m_coeffs_mat.transpose() << "\n\n";
-        std::cout << "[ biases ]\n" << m_biases_vec.transpose() << "\n\n";
-#endif
-    }
-
-    void predict(const Inference::LogisticRegression::Factors& samples,
-                 Inference::LogisticRegression::Probabs& probabs,
-                 Inference::LogisticRegression::Classes& classes) const {
-        predict(samples, probabs);
-
-        assert(not classes.is_empty());
-        assert(classes.size() == probabs.rows());
-
-        const auto probabs_mat = Type::ConstMatrixMap<Inference::Type::Coeff>(probabs.ptr(), probabs.rows(), probabs.cols());
-        auto classes_vec = Type::ColVectorMap<Inference::Type::Class>(classes.ptr(), classes.size());
-
-        auto class_idx = Inference::Type::Class{};
-        for (auto i{0u}; i < probabs_mat.rows(); ++i) {
-            if (m_models_n > 1) {
-                probabs_mat.row(i).maxCoeff(&class_idx);
-            } else {
-                class_idx = (probabs_mat(i, 0) < Inference::Type::Coeff{0.5}) ? Inference::Type::Class{0} : Inference::Type::Class{1};
-            }
-            classes_vec(i, 0) = class_idx;
-        }
-    }
-
-    void predict(const Inference::LogisticRegression::Factors& samples,
-                 Inference::LogisticRegression::Probabs& probabs) const {
-        assert(not samples.is_empty());
-        assert(not probabs.is_empty());
-
-        assert(samples.rows() == probabs.rows());
-
-        assert(samples.cols() == m_features_n);
-        assert(probabs.cols() == m_models_n);
-
-        const auto samples_mat = Type::ConstMatrixMap<Inference::Type::Coeff>(samples.ptr(), samples.rows(), samples.cols());
-        auto probabs_mat = Type::MatrixMap<Inference::Type::Coeff>(probabs.ptr(), probabs.rows(), probabs.cols());
-
-        probabs_mat = (samples_mat * m_coeffs_mat).rowwise() + m_biases_vec;
-        sigmoid(probabs_mat);
-
-        if (m_models_n > 1) {
-            softmax(probabs_mat);
-        }
-    }
-
-private:
-
-    [[nodiscard]]
-    static Type::Matrix<Inference::Type::Coeff> to_eigen_matrix(const Inference::LogisticRegression::Weights& coeffs) {
-        return Type::ConstMatrixMap<Inference::Type::Coeff>(coeffs.ptr(), coeffs.rows(), coeffs.cols());
-    }
-
-    [[nodiscard]]
-    static Type::ColVector<Inference::Type::Coeff> to_eigen_vector(const Inference::LogisticRegression::Intercepts& biases) {
-        return Type::ConstColVectorMap<Inference::Type::Coeff>(biases.ptr(), biases.size());
-    }
-
-    static void sigmoid(Type::MatrixMap<Inference::Type::Coeff>& logits) {
-        logits = ((-logits.array()).exp() + Inference::Type::Coeff{1}).inverse();
-    }
-
-    static void softmax(Type::MatrixMap<Inference::Type::Coeff>& logits) {
-        logits = logits.array().exp().colwise() / logits.array().exp().rowwise().sum();
-    }
-
-    const size_t m_models_n;
-    const size_t m_features_n;
-
-    const Type::Matrix<Inference::Type::Coeff>    m_coeffs_mat;
-    const Type::RowVector<Inference::Type::Coeff> m_biases_vec;
-
-};
-
-}
-
-namespace Inference {
-
-LogisticRegression::LogisticRegression(const Weights& coeffs, const Intercepts& biases)
-    : m_pimpl(std::make_unique<Impl::LogisticRegression>(coeffs, biases))
-{
-
-}
-
-void LogisticRegression::predict(const Factors& samples, Probabs& probabs, Classes& classes) const
-{
-    m_pimpl->predict(samples, probabs, classes);
-}
-
-void LogisticRegression::predict(const Factors& samples, Probabs& probabs) const
-{
-    m_pimpl->predict(samples, probabs);
-}
-
-}
+#include <pub/classifier/logistic-regression.hpp>
 
 int main() {
     const auto parse_file = [](const std::filesystem::path& path, const char delim, size_t row_n, size_t col_n) {
@@ -250,4 +89,8 @@ int main() {
 
     std::cout <<
         ">> Accuracy :\n" << ok_acc * 100.0f / samples.rows() << "\n\n";
+
+    if (auto cnt{0}; cudaSuccess == ::cudaGetDeviceCount(&cnt)) {
+        std::cout << "CUDA" << '\n';
+    }
 }
