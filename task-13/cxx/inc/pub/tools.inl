@@ -3,7 +3,7 @@
 #include <cassert>
 #include <cstddef>
 
-namespace Inference::Tools {
+namespace Inference::Tool {
 
 template<typename Type, typename Tag>
 FlatBuffer<Type, Tag>::FlatBuffer(const size_t n)

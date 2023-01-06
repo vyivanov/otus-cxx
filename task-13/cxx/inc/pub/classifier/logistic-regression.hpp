@@ -11,17 +11,18 @@ namespace Impl { class LogisticRegression; }
 
 class LogisticRegression: public Classifier {
 public:
-    using Weights    = Tools::SquareBuffer<Type::Coeff, class FixMe>;
-    using Intercepts = Tools::FlatBuffer  <Type::Coeff, class InterceptsTag>;
+    using Weights    = Tool::SquareBuffer<Type::Coeff, class FixMe>;
+    using Intercepts = Tool::FlatBuffer  <Type::Coeff, class InterceptsTag>;
 
     LogisticRegression(const Weights&, const Intercepts&);
-    ~LogisticRegression();
 
     void predict(const Factors&, Probabs&, Classes&) const override;
     void predict(const Factors&, Probabs&) const override;
 
+    ~LogisticRegression();
+
 private:
-    const std::unique_ptr<const Impl::LogisticRegression> m_pimpl;
+    const std::unique_ptr<const Impl::LogisticRegression> m_pimpl = {};
 };
 
 }

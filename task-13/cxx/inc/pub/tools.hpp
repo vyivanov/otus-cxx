@@ -4,7 +4,7 @@
 #include <vector>
 #include <type_traits>
 
-namespace Inference::Tools {
+namespace Inference::Tool {
 
 template<typename Type, typename Tag>
 class FlatBuffer final {

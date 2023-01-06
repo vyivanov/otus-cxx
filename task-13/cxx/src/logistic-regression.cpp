@@ -1,6 +1,5 @@
-
-#include <pub/classifier/logistic-regression.hpp>
 #include <priv/logistic-regression.hpp>
+#include <pub/classifier/logistic-regression.hpp>
 
 namespace Inference {
 
