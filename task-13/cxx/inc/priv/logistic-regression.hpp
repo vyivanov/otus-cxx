@@ -1,43 +1,41 @@
 #pragma once
 
 #include <cstddef>
+#include <eigen3/Eigen/Core>
 
-#include <pub/types.hpp>
 #include <priv/types.hpp>
+#include <pub/types.hpp>
 
-#include <pub/classifier/logistic-regression.hpp> // TODO: Remove
+using Inference::Type::Coeff;
+using Inference::Type::Class;
+
+using Inference::Impl::Type::Matrix;
+using Inference::Impl::Type::Vector;
+using Inference::Impl::Type::RowVector;
 
 namespace Inference::Impl {
 
-class LogisticRegression {
+class LogisticRegression final {
 public:
-    LogisticRegression(const Inference::LogisticRegression::Weights& coeffs,
-                       const Inference::LogisticRegression::Intercepts& biases);
+    LogisticRegression(const Eigen::Ref<const Matrix<Coeff>>& coeffs_mat,
+                       const Eigen::Ref<const Vector<Coeff>>& biases_vec);
 
-    void predict(const Inference::LogisticRegression::Factors& samples,
-                 Inference::LogisticRegression::Probabs& probabs,
-                 Inference::LogisticRegression::Classes& classes) const;
+    void predict(const Eigen::Ref<const Matrix<Coeff>>& samples_mat,
+                 Eigen::Ref<Matrix<Coeff>> probabs_mat,
+                 Eigen::Ref<Vector<Class>> classes_vec) const;
 
-    void predict(const Inference::LogisticRegression::Factors& samples,
-                 Inference::LogisticRegression::Probabs& probabs) const;
+    void predict(const Eigen::Ref<const Matrix<Coeff>>& samples_mat,
+                 Eigen::Ref<Matrix<Coeff>> probabs_mat) const;
 
 private:
+    static void apply_sigmoid(Eigen::Ref<Matrix<Coeff>> logits_mat);
+    static void apply_softmax(Eigen::Ref<Matrix<Coeff>> logits_mat);
 
-    [[nodiscard]]
-    static Type::Matrix<Inference::Type::Coeff> to_eigen_matrix(const Inference::LogisticRegression::Weights& coeffs);
+    const size_t m_models_n   = {};
+    const size_t m_features_n = {};
 
-    [[nodiscard]]
-    static Type::ColVector<Inference::Type::Coeff> to_eigen_vector(const Inference::LogisticRegression::Intercepts& biases);
-
-    static void sigmoid(Type::MatrixMap<Inference::Type::Coeff>& logits);
-
-    static void softmax(Type::MatrixMap<Inference::Type::Coeff>& logits);
-
-    const size_t m_models_n;
-    const size_t m_features_n;
-
-    const Type::Matrix<Inference::Type::Coeff>    m_coeffs_mat;
-    const Type::RowVector<Inference::Type::Coeff> m_biases_vec;
+    const Matrix   <Coeff> m_coeffs_mat = {};
+    const RowVector<Coeff> m_biases_vec = {};
 
 };
 

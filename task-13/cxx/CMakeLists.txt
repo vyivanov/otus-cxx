@@ -18,7 +18,7 @@ set(LIB_INC_PRIV inc/priv/logistic-regression.hpp
 set(LIB_SRC src/logistic-regression.cpp
             src/impl/logistic-regression.cpp)
 
-add_library(${PROJECT_NAME} SHARED ${LIB_INC_PUB} ${LIB_INC_PRIV} ${LIB_SRC})
+add_library(${PROJECT_NAME} SHARED ${LIB_INC_PRIV} ${LIB_INC_PUB} ${LIB_SRC})
 target_include_directories(${PROJECT_NAME} PRIVATE inc/)
 
 add_executable(${PROJECT_NAME}-main main.cpp)

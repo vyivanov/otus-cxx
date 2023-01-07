@@ -12,6 +12,8 @@ class FlatBuffer final {
     static_assert(std::is_class<Tag>::value);
 
 public:
+    using ValueType = Type;
+
     explicit FlatBuffer(size_t n);
 
     [[nodiscard]] bool is_empty() const noexcept;
@@ -33,6 +35,8 @@ class SquareBuffer final {
     static_assert(std::is_class<Tag>::value);
 
 public:
+    using ValueType = Type;
+
     SquareBuffer(size_t row_n, size_t col_n);
 
     [[nodiscard]] bool is_empty() const noexcept;

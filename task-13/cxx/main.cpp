@@ -75,7 +75,7 @@ int main() {
 
         std::cout <<
             ">> Predicted classes :\n" <<
-            Inference::Impl::Type::ConstColVectorMap<Inference::Type::Class>(
+            Inference::Impl::Type::ConstVectorMap<Inference::Type::Class>(
                 classes_pred.ptr(),
                 samples.rows()) << "\n\n";
     }

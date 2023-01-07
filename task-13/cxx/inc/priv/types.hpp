@@ -5,7 +5,7 @@
 namespace Inference::Impl::Type {
 
 template<typename T>
-using ColVector = Eigen::Matrix<T, Eigen::Dynamic, 1, Eigen::ColMajor>;
+using Vector = Eigen::Matrix<T, Eigen::Dynamic, 1, Eigen::ColMajor>;
 
 template<typename T>
 using RowVector = Eigen::Matrix<T, 1, Eigen::Dynamic, Eigen::RowMajor>;
@@ -14,10 +14,10 @@ template<typename T>
 using Matrix = Eigen::Matrix<T, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
 
 template<typename T>
-using ColVectorMap = Eigen::Map<ColVector<T>>;
+using VectorMap = Eigen::Map<Vector<T>>;
 
 template<typename T>
-using ConstColVectorMap = Eigen::Map<const ColVector<T>>;
+using ConstVectorMap = Eigen::Map<const Vector<T>>;
 
 template<typename T>
 using RowVectorMap = Eigen::Map<RowVector<T>>;
