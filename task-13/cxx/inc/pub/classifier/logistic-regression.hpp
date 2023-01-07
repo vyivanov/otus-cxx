@@ -11,8 +11,8 @@ namespace Impl { class LogisticRegression; }
 
 class LogisticRegression: public Classifier {
 public:
-    using Weights    = Tool::SquareBuffer<Type::Coeff, class FixMe>;
-    using Intercepts = Tool::FlatBuffer  <Type::Coeff, class InterceptsTag>;
+    using Weights = Tool::SquareBuffer<Type::Coeff, class WeightsTag>;
+    using Intercepts = Tool::FlatBuffer<Type::Coeff, class InterceptsTag>;
 
     LogisticRegression(const Weights&, const Intercepts&);
 

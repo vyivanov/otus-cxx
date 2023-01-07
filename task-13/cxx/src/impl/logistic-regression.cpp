@@ -3,8 +3,8 @@
 #include <iostream>
 
 #include <priv/logistic-regression.hpp>
+#include <priv/tools.hpp>
 #include <priv/types.hpp>
-#include <pub/types.hpp>
 
 #define PRINT_PARAMETERS 1
 
@@ -64,21 +64,21 @@ void LogisticRegression::predict(const Eigen::Ref<const Matrix<Coeff>>& samples_
     assert(probabs_mat.cols() == m_models_n);
 
     probabs_mat = (samples_mat * m_coeffs_mat).rowwise() + m_biases_vec;
-    apply_sigmoid(probabs_mat);
+    Tool::apply_sigmoid(probabs_mat);
 
     if (m_models_n > 1) {
-        apply_softmax(probabs_mat);
+        Tool::apply_softmax(probabs_mat);
     }
 }
 
-void LogisticRegression::apply_sigmoid(Eigen::Ref<Matrix<Coeff>> logits_mat)
-{
-    logits_mat = ((-logits_mat.array()).exp() + Coeff{1.0}).inverse();
 }
 
-void LogisticRegression::apply_softmax(Eigen::Ref<Matrix<Coeff>> logits_mat)
+#include <cuda_runtime.h>
+bool is_cuda_available()
 {
-    logits_mat = logits_mat.array().exp().colwise() / logits_mat.array().exp().rowwise().sum();
-}
-
+    if (auto cnt{0}; cudaSuccess == ::cudaGetDeviceCount(&cnt)) {
+        return true;
+    } else {
+        return false;
+    }
 }

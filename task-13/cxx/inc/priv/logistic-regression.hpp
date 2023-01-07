@@ -28,13 +28,10 @@ public:
                  Eigen::Ref<Matrix<Coeff>> probabs_mat) const;
 
 private:
-    static void apply_sigmoid(Eigen::Ref<Matrix<Coeff>> logits_mat);
-    static void apply_softmax(Eigen::Ref<Matrix<Coeff>> logits_mat);
-
     const size_t m_models_n   = {};
     const size_t m_features_n = {};
 
-    const Matrix   <Coeff> m_coeffs_mat = {};
+    const Matrix<Coeff>    m_coeffs_mat = {};
     const RowVector<Coeff> m_biases_vec = {};
 
 };

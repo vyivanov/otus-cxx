@@ -6,21 +6,19 @@
 #include <stdexcept>
 #include <cstdlib>
 
-#include <cuda_runtime.h>
-
 #include <priv/types.hpp>
 #include <pub/tools.hpp>
 #include <pub/types.hpp>
 
 #include <pub/classifier/logistic-regression.hpp>
 
-int main() {
-    const auto parse_file = [](const std::filesystem::path& path, const char delim, size_t row_n, size_t col_n) {
+template<typename F, typename R>
+auto parse_file(const std::filesystem::path& path, const char delim, size_t row_n, size_t col_n) {
         assert(std::filesystem::exists(path));
         auto stream = std::ifstream{path};
 
-        auto first_column = Inference::LogisticRegression::Intercepts{row_n};
-        auto rest_columns = Inference::LogisticRegression::Factors{row_n, col_n};
+        auto first_column = F{row_n};
+        auto rest_columns = R{row_n, col_n};
 
         auto line_str = std::string{};
         auto line_ss = std::istringstream{};
@@ -44,13 +42,18 @@ int main() {
         return std::make_pair(first_column, rest_columns);
     };
 
-    const auto [biases, coeffs] = parse_file("../../ml-artifacts/12_CV/logreg_coef.txt", '\x20', 10, 784);
+int main() {
+    const auto [biases, coeffs] =
+        parse_file<Inference::LogisticRegression::Intercepts, Inference::LogisticRegression::Weights>(
+            "../../ml-artifacts/12_CV/logreg_coef.txt", '\x20', 10, 784);
     assert(biases.size() == 10);
     assert(coeffs.rows() == 10 and coeffs.cols() == 784);
 
-    auto [classes_true, samples] = parse_file("../../ml-artifacts/12_CV/test.csv", ',', 12'000, 784);
-    assert(classes_true.size() == 12'000);
-    assert(samples.rows() == 12'000 and samples.cols() == 784);
+    auto [classes_true, samples] =
+        parse_file<Inference::LogisticRegression::Classes, Inference::LogisticRegression::Factors>(
+            "../../ml-artifacts/12_CV/data/fashion-mnist_train-mod.csv", ',', 60'000, 784);
+    assert(classes_true.size() == 60'000);
+    assert(samples.rows() == 60'000 and samples.cols() == 784);
 
     auto probabs_pred = Inference::LogisticRegression::Probabs(samples.rows(), coeffs.rows());
     auto classes_pred = Inference::LogisticRegression::Classes(samples.rows());
@@ -89,8 +92,4 @@ int main() {
 
     std::cout <<
         ">> Accuracy :\n" << ok_acc * 100.0f / samples.rows() << "\n\n";
-
-    if (auto cnt{0}; cudaSuccess == ::cudaGetDeviceCount(&cnt)) {
-        std::cout << "CUDA" << '\n';
-    }
 }
